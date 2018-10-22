@@ -56,6 +56,11 @@ FLAGS = tf.app.flags.FLAGS
 
 _buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
 
+config = tf.ConfigProto(
+    # device_count={'CPU': 1, 'GPU': 0},
+    allow_soft_placement=True,
+    log_device_placement=True
+)
 
 def read_data(source_path, target_path, max_size=None):
   data_set = [[] for _ in _buckets]
@@ -88,10 +93,10 @@ def create_model(session, forward_only):
       forward_only=forward_only)
 
   ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
-  #if ckpt and gfile.Exists(ckpt.model_checkpoint_path):
+  if ckpt and gfile.Exists(ckpt.model_checkpoint_path):
     #add
-  if not os.path.isabs(ckpt.model_checkpoint_path):
-    ckpt.model_checkpoint_path= os.path.abspath(os.path.join(os.getcwd(), ckpt.model_checkpoint_path))
+  #if not os.path.isabs(ckpt.model_checkpoint_path):
+    #ckpt.model_checkpoint_path= os.path.abspath(os.path.join(os.getcwd(), ckpt.model_checkpoint_path))
     #so far
     print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
     model.saver.restore(session, ckpt.model_checkpoint_path)
@@ -108,7 +113,7 @@ def train():
       FLAGS.data_dir, FLAGS.in_vocab_size, FLAGS.out_vocab_size)
 
 
-  with tf.Session() as sess:
+  with tf.Session(config=config) as sess:
 
 
     print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
@@ -129,7 +134,7 @@ def train():
     step_time, loss = 0.0, 0.0
     current_step = 0
     previous_losses = []
-    while True:
+    while current_step < 100000:
 
       random_number_01 = np.random.random_sample()
       bucket_id = min([i for i in xrange(len(train_buckets_scale))
@@ -173,7 +178,7 @@ def train():
 
 
 def decode():
-  with tf.Session() as sess:
+  with tf.Session(config=config) as sess:
     #print ("Hello!!")
     model = create_model(sess, True)
     model.batch_size = 1
@@ -216,7 +221,7 @@ def decode():
 
 def self_test():
 
-  with tf.Session() as sess:
+  with tf.Session(config=config) as sess:
     print("Self-test for neural translation model.")
 
     model = seq2seq_model.Seq2SeqModel(10, 10, [(3, 3), (6, 6)], 32, 2,
